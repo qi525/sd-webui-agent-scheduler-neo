@@ -63,6 +63,24 @@ declare global {
   function modalSaveImage(event: Event): void;
 }
 
+function create_submit_args(args: any[]): any[] {
+  const arr = Array.isArray(args) ? [...args] : [];
+
+  if (arr.length === 0) {
+    return arr;
+  }
+
+  while (arr.length > 0 && arr[arr.length - 1] === undefined) {
+    arr.pop();
+  }
+
+  return arr;
+}
+
+if (typeof window !== 'undefined') {
+  window.create_submit_args = create_submit_args;
+}
+
 const sharedStore = createSharedStore({
   uiAsTab: true,
   selectedTab: 'pending',
@@ -374,14 +392,23 @@ function initQueueHandler() {
       console.log(`第${index + 1}个参数：`, value);
     });
 
-    res[0] = getUiCheckpoint(false);
-    res[1] = randomId();
+    const fallbackCheckpoint = getUiCheckpoint(false);
+    const fallbackTaskId = randomId();
+    const safeRes = res.length > 0 ? [...res] : [];
+
+    safeRes[0] = fallbackCheckpoint;
+    safeRes[1] = fallbackTaskId;
+
+    if (safeRes.length < 2) {
+      safeRes.push(fallbackTaskId);
+    }
+
     window.randomId = window.origRandomId;
 
     if (btnEnqueue != null) {
       btnEnqueue.innerText = 'Queued';
       setTimeout(() => {
-        console.log('[Trace] submit_enqueue called', args);
+        console.log('[Trace] submit_enqueue called', safeRes);
         btnEnqueue.innerText = 'Enqueue';
         if (!sharedStore.getState().uiAsTab) {
           if (sharedStore.getState().selectedTab === 'pending') {
@@ -391,7 +418,7 @@ function initQueueHandler() {
       }, 1000);
     }
 
-    return res;
+    return safeRes;
   };
 
   const btnImg2ImgEnqueue = gradioApp().querySelector<HTMLButtonElement>('#img2img_enqueue')!;
@@ -407,15 +434,28 @@ function initQueueHandler() {
       console.log(`第${index + 1}个参数：`, value);
     });
 
-    res[0] = getUiCheckpoint(true);
-    res[1] = randomId();
-    res[2] = get_tab_index('mode_img2img');
+    const fallbackCheckpoint = getUiCheckpoint(true);
+    const fallbackTaskId = randomId();
+    const safeRes = res.length > 0 ? [...res] : [];
+
+    safeRes[0] = fallbackCheckpoint;
+    safeRes[1] = fallbackTaskId;
+    safeRes[2] = get_tab_index('mode_img2img');
+
+    if (safeRes.length < 2) {
+      safeRes.push(fallbackTaskId);
+    }
+
+    if (safeRes.length < 3) {
+      safeRes.push(get_tab_index('mode_img2img'));
+    }
+
     window.randomId = window.origRandomId;
 
     if (btnImg2ImgEnqueue != null) {
       btnImg2ImgEnqueue.innerText = 'Queued';
       setTimeout(() => {
-        console.log('[Trace] submit_enqueue_img2img called', args);
+        console.log('[Trace] submit_enqueue_img2img called', safeRes);
         btnImg2ImgEnqueue.innerText = 'Enqueue';
         if (!sharedStore.getState().uiAsTab) {
           if (sharedStore.getState().selectedTab === 'pending') {
@@ -425,7 +465,7 @@ function initQueueHandler() {
       }, 1000);
     }
 
-    return res;
+    return safeRes;
   };
 
   // detect queue button placement
