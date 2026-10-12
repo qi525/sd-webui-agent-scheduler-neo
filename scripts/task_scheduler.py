@@ -348,12 +348,16 @@ def infotexts_to_geninfo(infotexts: List[str]):
     return geninfo
 
 
-def validate_gallery_output(value, *, task_id=None, image_idx=None, stage="before return to gradio"):
-    """Validate the value returned for a Gradio Gallery component.
+def coerce_gallery_payload(value, *, task_id=None, image_idx=None, stage="before return to gradio"):
+    """Normalize gallery payloads for Gradio.
 
-    This isolates the exact failure mode behind the Pydantic validation error:
-    "GalleryData" expects a list-like value, and a plain bool (e.g. False)
-    is rejected before the UI can update.
+    Root cause: Gradio's GalleryData model validates the payload before the browser can
+    render it, and a plain bool/None is rejected as invalid list data. Returning a bool
+    here is therefore not a user-data problem; it is a callback contract problem.
+
+    We deliberately convert invalid values to an empty list instead of propagating False,
+    and we keep gr.update(...) intact because that is the explicit Gradio control object
+    for a UI update, not image payload content.
     """
     if value is None:
         print(f"[GalleryValidate] {stage}: invalid gallery value is None; task_id={task_id}, image_idx={image_idx}")
@@ -367,13 +371,41 @@ def validate_gallery_output(value, *, task_id=None, image_idx=None, stage="befor
         print(f"[GalleryValidate] {stage}: valid gallery list length={len(value)}; task_id={task_id}, image_idx={image_idx}")
         return list(value)
 
-    # Keep gr.update() or other Gradio update objects as valid; they are not plain Python lists,
-    # but are an intentional control signal for Gradio instead of actual image payloads.
+    # Keep gr.update() or other Gradio update objects as valid; they are not plain Python
+    # lists, but are an intentional control signal for Gradio instead of actual image payloads.
     print(f"[GalleryValidate] {stage}: non-list gallery payload type={type(value).__name__}; task_id={task_id}, image_idx={image_idx}")
     return value
 
 
+# Backward-compatible alias retained so older code paths or logs still reference the
+# original validation helper name, while the real contract is enforced by coerce_gallery_payload().
+validate_gallery_output = coerce_gallery_payload
+
+
+def normalize_gallery_image_idx(value):
+    """Normalize empty or stale image index values before they hit Gradio Gallery callbacks."""
+    if value is None or isinstance(value, bool):
+        return None
+
+    if isinstance(value, str):
+        value = value.strip()
+        if value in {"", "False", "false", "None", "null"}:
+            return None
+
+    try:
+        idx = int(value)
+    except (TypeError, ValueError):
+        return None
+
+    return idx if idx >= 0 else None
+
+
 def get_task_results(task_id: str, image_idx: int = None):
+    normalized_idx = normalize_gallery_image_idx(image_idx)
+    if normalized_idx is not None:
+        image_idx = normalized_idx
+    elif image_idx is not None:
+        image_idx = None
     # TestAAAAA---主流程: 任务历史 Gallery 回调链路诊断标记，便于 VS Code 全文搜索
     # TestCCCCC---主流程: 统一新增的触发链条标记，便于快速定位前端事件->回调->返回值链路
     # TestDDDDD---主流程: 输入参数和 Gallery 返回值的最终确认节点，判断事件是否真的到达函数并将值返回给 Gradio
@@ -411,7 +443,10 @@ def get_task_results(task_id: str, image_idx: int = None):
             log.error(e)
             infotext = f"Failed to load task result: {str(e)}"
 
-    gallery_value = validate_gallery_output(galerry, task_id=task_id, image_idx=image_idx, stage="before return to gradio")
+    # GalleryData is validated before the browser renders, so a plain bool/None must never
+    # escape from this callback. This keeps the Gradio contract stable and prevents the
+    # "GalleryData expects a list-like value" crash when a task is selected or reloaded.
+    gallery_value = coerce_gallery_payload(galerry, task_id=task_id, image_idx=image_idx, stage="before return to gradio")
 
     res = (
         gr.Textbox.update(infotext, visible=infotext is not None),
@@ -643,7 +678,10 @@ def on_ui_tab(**_kwargs):
         )
         print(f"[TestDDDDD---主流程] Python 事件绑定: selected_task.change 已注册，调用 get_task_results(task_id, None)")
         selected_image_id.change(
-            fn=lambda x, y: get_task_results(x, image_idx=int(y)),
+            # The hidden textbox may be empty or still hold stale data during a selection reset.
+            # Guarding the index keeps the callback contract stable and prevents falsey/non-numeric
+            # values from being converted into Gallery callbacks that Gradio rejects.
+            fn=lambda x, y: get_task_results(x, normalize_gallery_image_idx(y)),
             inputs=[selected_task, selected_image_id],
             outputs=[infotext, result_actions],
         )

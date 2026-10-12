@@ -1,0 +1,117 @@
+[
+    "Current Checkpoint",
+    "",
+    //正向提示词
+    "a completely white horse,horse eyes,horse ears,horse barn,\nartoria pendragon (lancer) (fate),artoria pendragon (fate),1girl,breasts,blonde hair,huge breasts,fate (series),ahoge,long hair,ass,from behind,braid,jewelry,gigantic breasts,backboob,earrings,fate/grand order,saber (fate),dress,back,long skirt,shirt,looking back,sideboob,sweat,highres,solo,questionable,skirt,long sleeves,blue skirt,huge ass,standing,sensitive,looking at viewer,animal,dun stallion (fate),white shirt,\nstable,interior,wooden structure,hay,straw,dim lighting,wooden fence,\nundressing,removing clothes,taking off jacket,shirt off,shirt lifted,unbuttoning,bare shoulders,jacket on fence,clothes on hay,\nIndoors at night,with a camping lantern,a suit of armor \\(taken off\\) set aside,The armor was placed on the ground.,",
+    //负面提示词
+    "worst quality, low quality, censored, mosaic censoring, bar censor, letterboxed, black bars, negative space, watermark, signature, artist name",
+    //未知
+    [],
+    3, //Batch Count
+    2, //每批数量(Batch Size)
+    5.5, //提示词相关性(CFG Scale/无分类器信息引导规模)
+    9,  //没搞懂
+    1360, //高
+    800,  //宽
+    false,
+    0.6,
+    2,
+    "Latent",
+    24,
+    0,
+    0,
+    "Use same checkpoint",
+    [
+        "Use same choices"
+    ],
+    "Use same sampler",
+    "Use same scheduler",
+    "",
+    "",
+    4.5,
+    9,
+    [],
+    "None",
+    26,  //Sampling Steps
+    "Euler a",   //Sampling Method
+    "Automatic",  //Schedule Type
+    2666888,  //种子，如果是-1则随机
+    false,
+    -1,
+    0,
+    0,
+    0,
+    false,
+    1.25,
+    [
+        0.15,
+        0.85
+    ],
+    4096,
+    0,
+    "",
+    false,
+    null,
+    null,
+    null,
+    false,
+    false,
+    false,
+    [],
+    1024,
+    false,
+    0.25,
+    6,
+    0.5,
+    2,
+    0,
+    6,
+    0.9,
+    "Automatic",
+    false,
+    false,
+    "positive",
+    "comma",
+    0,
+    false,
+    false,
+    "start",
+    "",
+    "Seed",
+    "",
+    [],
+    "Nothing",
+    "",
+    [],
+    "Nothing",
+    "",
+    [],
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    0,
+    0,
+    false,
+    "",
+    false,
+    "",
+    [
+        "Override Model"
+    ],
+    "",
+    false,
+    "",
+    [
+        "Override Model"
+    ],
+    "",
+    false,
+    "",
+    [
+        "Override Model"
+    ]
+]

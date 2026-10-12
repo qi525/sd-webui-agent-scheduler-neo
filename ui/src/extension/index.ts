@@ -363,7 +363,17 @@ function initQueueHandler() {
 
   const btnEnqueue = gradioApp().querySelector<HTMLButtonElement>('#txt2img_enqueue')!;
   window.submit_enqueue = (...args) => {
+    console.log('[DebugSubmit] submit_enqueue 原始参数：');
+    args.forEach((value, index) => {
+      console.log(`第${index + 1}个参数：`, value);
+    });
+
     const res = create_submit_args(args);
+    console.log('[DebugSubmit] submit_enqueue 处理后参数：');
+    res.forEach((value, index) => {
+      console.log(`第${index + 1}个参数：`, value);
+    });
+
     res[0] = getUiCheckpoint(false);
     res[1] = randomId();
     window.randomId = window.origRandomId;
@@ -371,7 +381,7 @@ function initQueueHandler() {
     if (btnEnqueue != null) {
       btnEnqueue.innerText = 'Queued';
       setTimeout(() => {
-        console.log('[Trace] submit_enqueue called', args)
+        console.log('[Trace] submit_enqueue called', args);
         btnEnqueue.innerText = 'Enqueue';
         if (!sharedStore.getState().uiAsTab) {
           if (sharedStore.getState().selectedTab === 'pending') {
@@ -386,7 +396,17 @@ function initQueueHandler() {
 
   const btnImg2ImgEnqueue = gradioApp().querySelector<HTMLButtonElement>('#img2img_enqueue')!;
   window.submit_enqueue_img2img = (...args) => {
+    console.log('[DebugSubmit] submit_enqueue_img2img 原始参数：');
+    args.forEach((value, index) => {
+      console.log(`第${index + 1}个参数：`, value);
+    });
+
     const res = create_submit_args(args);
+    console.log('[DebugSubmit] submit_enqueue_img2img 处理后参数：');
+    res.forEach((value, index) => {
+      console.log(`第${index + 1}个参数：`, value);
+    });
+
     res[0] = getUiCheckpoint(true);
     res[1] = randomId();
     res[2] = get_tab_index('mode_img2img');
@@ -395,7 +415,7 @@ function initQueueHandler() {
     if (btnImg2ImgEnqueue != null) {
       btnImg2ImgEnqueue.innerText = 'Queued';
       setTimeout(() => {
-        console.log('[Trace] submit_enqueue_img2img called', args)
+        console.log('[Trace] submit_enqueue_img2img called', args);
         btnImg2ImgEnqueue.innerText = 'Enqueue';
         if (!sharedStore.getState().uiAsTab) {
           if (sharedStore.getState().selectedTab === 'pending') {
@@ -952,6 +972,25 @@ function initPendingTab() {
   createGrid(eGridDiv, gridOptions);
 }
 
+function normalizeGalleryImageIndex(value: unknown): number | null {
+  if (value == null || typeof value === 'boolean') return null;
+
+  const text = typeof value === 'string' ? value.trim() : String(value).trim();
+  if (text === '' || text === 'False' || text === 'false' || text === 'None' || text === 'null') {
+    return null;
+  }
+
+  const idx = Number(text);
+  return Number.isInteger(idx) && idx >= 0 ? idx : null;
+}
+
+function logDebugArguments(label: string, args: unknown[]) {
+  console.log(label);
+  args.forEach((value, index) => {
+    console.log(`第${index + 1}个参数：`, value);
+  });
+}
+
 function initHistoryTab() {
   const store = historyStore;
 
@@ -986,26 +1025,49 @@ function initHistoryTab() {
   resultGallery.addEventListener('click', e => {
     const target = e.target as Element | null;
     if (target?.tagName === 'IMG') {
-      const imageIdx = Array.prototype.indexOf.call(
+      const rawIndex = Array.prototype.indexOf.call(
         target.parentElement!.parentElement!.children,
         target.parentElement!
       );
-      console.log('[TestAAAAA---主流程] gallery click:', { imageIdx, targetTag: target.tagName });
-      console.log('[TestDDDDD---主流程] 前端点击图片: 发生在 Gallery 点击事件，准备写入 selected_image_id', {
-        imageIdx,
-        resultTaskIdValue: resultTaskId.value,
+
+      const imageIdx = normalizeGalleryImageIndex(rawIndex);
+
+      console.log('[DebugGallery] 点击事件原始数据：');
+      console.log('第1个参数：', {
+        clickTargetTag: target.tagName,
+        clickTargetOuterHTML: target.outerHTML.slice(0, 200),
+        rawIndex,
+        resultTaskIdBefore: resultTaskId.value,
         resultImageIdBefore: resultImageId.value,
       });
+      console.log('第2个参数：', {
+        normalizedImageIdx: imageIdx,
+        isValid: imageIdx != null,
+      });
+
+      // Gradio gallery payload validation fails when the hidden image index resolves to a
+      // falsey or non-numeric value such as False/None, so we intentionally ignore invalid
+      // click targets and only propagate a real integer index to the Python callback.
+      if (imageIdx == null) {
+        console.log('[DebugGallery] 过滤掉非法图片索引，不继续写入 hidden input。');
+        return;
+      }
+
       resultImageId.value = imageIdx.toString();
-      console.log('[TestDDDDD---主流程] 前端更新隐藏输入: resultImageId.value 已写入', {
-        imageIdx,
+      console.log('[DebugGallery] 写入隐藏输入后：');
+      console.log('第1个参数：', {
+        resultTaskIdAfter: resultTaskId.value,
         resultImageIdAfter: resultImageId.value,
-      });
-      resultImageId.dispatchEvent(new Event('input', { bubbles: true }));
-      console.log('[TestDDDDD---主流程] 前端触发 input 事件: 这会调用 selected_image_id.change 绑定的 Python 回调', {
         imageIdx,
-        eventType: 'input',
       });
+
+      resultImageId.dispatchEvent(new Event('input', { bubbles: true }));
+      console.log('[DebugGallery] 已触发 input 事件，下一步会进入 selected_image_id.change 回调。');
+      logDebugArguments('[DebugGallery] 发送给 Python 的最终字段：', [
+        resultTaskId.value,
+        resultImageId.value,
+        imageIdx,
+      ]);
     }
   });
 
