@@ -291,6 +291,7 @@ class TaskRunner:
         )
         task_manager.add_task(task)
 
+        print(f"[Trace] register_ui_task: task_id={task_id}, is_img2img={is_img2img}, task_name={task_name}")
         self.__run_callbacks("task_registered", task_id, is_img2img=is_img2img, is_ui=True, args=params)
         self.__total_pending_tasks += 1
 
@@ -318,7 +319,7 @@ class TaskRunner:
             script_params=script_params,
         )
         task_manager.add_task(task)
-
+        print(f"[Trace] register_api_task: task_id={task_id}, api_task_id={api_task_id}, is_img2img={is_img2img}")
         self.__run_callbacks("task_registered", task_id, is_img2img=is_img2img, is_ui=False, args=params)
         self.__total_pending_tasks += 1
 

@@ -371,6 +371,7 @@ function initQueueHandler() {
     if (btnEnqueue != null) {
       btnEnqueue.innerText = 'Queued';
       setTimeout(() => {
+        console.log('[Trace] submit_enqueue called', args)
         btnEnqueue.innerText = 'Enqueue';
         if (!sharedStore.getState().uiAsTab) {
           if (sharedStore.getState().selectedTab === 'pending') {
@@ -394,6 +395,7 @@ function initQueueHandler() {
     if (btnImg2ImgEnqueue != null) {
       btnImg2ImgEnqueue.innerText = 'Queued';
       setTimeout(() => {
+        console.log('[Trace] submit_enqueue_img2img called', args)
         btnImg2ImgEnqueue.innerText = 'Enqueue';
         if (!sharedStore.getState().uiAsTab) {
           if (sharedStore.getState().selectedTab === 'pending') {
@@ -988,8 +990,22 @@ function initHistoryTab() {
         target.parentElement!.parentElement!.children,
         target.parentElement!
       );
+      console.log('[TestAAAAA---主流程] gallery click:', { imageIdx, targetTag: target.tagName });
+      console.log('[TestDDDDD---主流程] 前端点击图片: 发生在 Gallery 点击事件，准备写入 selected_image_id', {
+        imageIdx,
+        resultTaskIdValue: resultTaskId.value,
+        resultImageIdBefore: resultImageId.value,
+      });
       resultImageId.value = imageIdx.toString();
+      console.log('[TestDDDDD---主流程] 前端更新隐藏输入: resultImageId.value 已写入', {
+        imageIdx,
+        resultImageIdAfter: resultImageId.value,
+      });
       resultImageId.dispatchEvent(new Event('input', { bubbles: true }));
+      console.log('[TestDDDDD---主流程] 前端触发 input 事件: 这会调用 selected_image_id.change 绑定的 Python 回调', {
+        imageIdx,
+        eventType: 'input',
+      });
     }
   });
 

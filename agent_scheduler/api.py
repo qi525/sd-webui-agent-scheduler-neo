@@ -55,6 +55,7 @@ def api_callback(callback_url: str, task_id: str, status: TaskStatus, images: li
             )
         )
 
+    print(f"[Trace] api_callback: callback_url={callback_url}, task_id={task_id}, status={status}")
     return requests.post(
         callback_url,
         timeout=5,

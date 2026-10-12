@@ -142,8 +142,11 @@ class Script(scripts.Script):
             self.submit_button = gr.Button("Enqueue", elem_id=f"{id_part}_enqueue", variant="primary")
 
     def bind_enqueue_button(self, root: gr.Blocks):
+        print(f"[TestBBBBB---主流程] bind_enqueue_button start: generate_id={getattr(self.generate_button, '_id', None)}, is_img2img={self.is_img2img}")
+        print(f"[Trace] bind_enqueue_button: root children count={len(getattr(root, 'children', []))}")
         generate = self.generate_button
         if generate is None or generate._id is None:
+            print(f"[TestBBBBB---主流程] bind_enqueue_button abort: generate is None or _id missing")
             return
         is_img2img = self.is_img2img
         dependencies: List[dict] = [
@@ -191,6 +194,8 @@ class Script(scripts.Script):
 
             fn = self.wrap_register_ui_task()
             _js_fn = "(...args) => submit_enqueue_img2img(...args)" if is_img2img else "(...args) => submit_enqueue(...args)"
+            print(f"[TestBBBBB---主流程] bind_enqueue_button register click: button_id={self.submit_button.elem_id}, inputs_count={len(new_inputs)}")
+            print(f"[Trace] bind_enqueue_button: registered click for {self.submit_button.elem_id}")
             self.submit_button.click(
                 fn=fn,
                 _js=_js_fn,
@@ -207,6 +212,7 @@ class Script(scripts.Script):
 
     def wrap_register_ui_task(self):
         def f(request: gr.Request, *args):
+            print(f"[TestBBBBB---主流程] wrap_register_ui_task called: args_len={len(args)}, first_arg_type={type(args[0]).__name__ if args else None}")
             if len(args) == 0:
                 raise Exception("Invalid call")
 
@@ -342,7 +348,38 @@ def infotexts_to_geninfo(infotexts: List[str]):
     return geninfo
 
 
+def validate_gallery_output(value, *, task_id=None, image_idx=None, stage="before return to gradio"):
+    """Validate the value returned for a Gradio Gallery component.
+
+    This isolates the exact failure mode behind the Pydantic validation error:
+    "GalleryData" expects a list-like value, and a plain bool (e.g. False)
+    is rejected before the UI can update.
+    """
+    if value is None:
+        print(f"[GalleryValidate] {stage}: invalid gallery value is None; task_id={task_id}, image_idx={image_idx}")
+        return []
+
+    if isinstance(value, bool):
+        print(f"[GalleryValidate] {stage}: invalid gallery value is bool={value}; task_id={task_id}, image_idx={image_idx}")
+        return []
+
+    if isinstance(value, (list, tuple)):
+        print(f"[GalleryValidate] {stage}: valid gallery list length={len(value)}; task_id={task_id}, image_idx={image_idx}")
+        return list(value)
+
+    # Keep gr.update() or other Gradio update objects as valid; they are not plain Python lists,
+    # but are an intentional control signal for Gradio instead of actual image payloads.
+    print(f"[GalleryValidate] {stage}: non-list gallery payload type={type(value).__name__}; task_id={task_id}, image_idx={image_idx}")
+    return value
+
+
 def get_task_results(task_id: str, image_idx: int = None):
+    # TestAAAAA---主流程: 任务历史 Gallery 回调链路诊断标记，便于 VS Code 全文搜索
+    # TestCCCCC---主流程: 统一新增的触发链条标记，便于快速定位前端事件->回调->返回值链路
+    # TestDDDDD---主流程: 输入参数和 Gallery 返回值的最终确认节点，判断事件是否真的到达函数并将值返回给 Gradio
+    print(f"[TestAAAAA---主流程] get_task_results enter: task_id={task_id}, image_idx={image_idx}")
+    print(f"[TestCCCCC---主流程] get_task_results triggered: task_id={task_id}, image_idx={image_idx}, task_exists={task_manager.get_task(task_id) is not None}")
+    print(f"[TestDDDDD---主流程] Python 回调入口: 准备读取 task_id={task_id}, image_idx={image_idx}, 这一步确定事件是否真正进入 get_task_results")
     task = task_manager.get_task(task_id)
 
     galerry = None
@@ -374,20 +411,25 @@ def get_task_results(task_id: str, image_idx: int = None):
             log.error(e)
             infotext = f"Failed to load task result: {str(e)}"
 
+    gallery_value = validate_gallery_output(galerry, task_id=task_id, image_idx=image_idx, stage="before return to gradio")
+
     res = (
         gr.Textbox.update(infotext, visible=infotext is not None),
-        gr.Row.update(visible=galerry is not None),
+        gr.Row.update(visible=gallery_value is not None),
     )
 
     if image_idx is None:
         geninfo = json.dumps(geninfo) if geninfo else None
         res += (
-            galerry,
+            gallery_value,
             gr.Textbox.update(geninfo),
             gr.File.update(None, visible=False),
             gr.HTML.update(None),
         )
 
+    print(f"[TestAAAAA---主流程] get_task_results exit: gallery_type={type(gallery_value).__name__}, gallery_value={gallery_value}, res_types={[type(v).__name__ for v in res]}")
+    print(f"[TestCCCCC---主流程] before return to gradio: gallery_value={gallery_value}, gallery_type={type(gallery_value).__name__}, res_len={len(res)}, third_item_type={type(res[2]).__name__ if len(res) > 2 else 'missing'}")
+    print(f"[TestDDDDD---主流程] Python 返回前确认: 即将返回给 Gradio 的 Gallery 值为 {gallery_value}, 类型={type(gallery_value).__name__}, 第3个返回项类型={type(res[2]).__name__ if len(res) > 2 else 'missing'}")
     return res
 
 
@@ -599,11 +641,13 @@ def on_ui_tab(**_kwargs):
             inputs=[selected_task],
             outputs=[infotext, result_actions, galerry, generation_info, download_files, html_log],
         )
+        print(f"[TestDDDDD---主流程] Python 事件绑定: selected_task.change 已注册，调用 get_task_results(task_id, None)")
         selected_image_id.change(
             fn=lambda x, y: get_task_results(x, image_idx=int(y)),
             inputs=[selected_task, selected_image_id],
             outputs=[infotext, result_actions],
         )
+        print(f"[TestDDDDD---主流程] Python 事件绑定: selected_image_id.change 已注册，调用 get_task_results(task_id, image_idx)")
         try:
             for paste_tabname, paste_button in send_to_buttons.items():
                 register_paste_params_button(

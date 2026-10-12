@@ -43,11 +43,13 @@ def get_script_by_name(script_name: str, is_img2img: bool = False, is_always_on:
 
 def load_image_from_url(url: str):
     try:
-        response = requests.get(url)
-        buffer = io.BytesIO(response.content)
-        return Image.open(buffer)
+        print(f"[Trace] load_image_from_url: url={url}")
+        resp = requests.get(url, timeout=5)
+        resp.raise_for_status()
+        return Image.open(io.BytesIO(resp.content))
     except Exception as e:
-        log.error(f"[AgentScheduler] Error downloading image from url: {e}")
+        log.error(f"[AgentScheduler] Failed to load image from {url}")
+        log.error(e)
         return None
 
 
