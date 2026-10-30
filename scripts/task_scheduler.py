@@ -142,11 +142,11 @@ class Script(scripts.Script):
             self.submit_button = gr.Button("Enqueue", elem_id=f"{id_part}_enqueue", variant="primary")
 
     def bind_enqueue_button(self, root: gr.Blocks):
-        print(f"[TestBBBBB---主流程] bind_enqueue_button start: generate_id={getattr(self.generate_button, '_id', None)}, is_img2img={self.is_img2img}")
+        log.debug("[TestBBBBB---主流程] bind_enqueue_button start: generate_id={getattr(self.generate_button, '_id', None)}, is_img2img={self.is_img2img}")
         print(f"[Trace] bind_enqueue_button: root children count={len(getattr(root, 'children', []))}")
         generate = self.generate_button
         if generate is None or generate._id is None:
-            print(f"[TestBBBBB---主流程] bind_enqueue_button abort: generate is None or _id missing")
+            log.debug("[TestBBBBB---主流程] bind_enqueue_button abort: generate is None or _id missing")
             return
         is_img2img = self.is_img2img
         dependencies: List[dict] = [
@@ -194,7 +194,7 @@ class Script(scripts.Script):
 
             fn = self.wrap_register_ui_task()
             _js_fn = "(...args) => submit_enqueue_img2img(...args)" if is_img2img else "(...args) => submit_enqueue(...args)"
-            print(f"[TestBBBBB---主流程] bind_enqueue_button register click: button_id={self.submit_button.elem_id}, inputs_count={len(new_inputs)}")
+            log.debug("[TestBBBBB---主流程] bind_enqueue_button register click: button_id={self.submit_button.elem_id}, inputs_count={len(new_inputs)}")
             print(f"[Trace] bind_enqueue_button: registered click for {self.submit_button.elem_id}")
             self.submit_button.click(
                 fn=fn,
@@ -212,7 +212,7 @@ class Script(scripts.Script):
 
     def wrap_register_ui_task(self):
         def f(request: gr.Request, *args):
-            print(f"[TestBBBBB---主流程] wrap_register_ui_task called: args_len={len(args)}, first_arg_type={type(args[0]).__name__ if args else None}")
+            log.debug("[TestBBBBB---主流程] wrap_register_ui_task called: args_len={len(args)}, first_arg_type={type(args[0]).__name__ if args else None}")
             if len(args) == 0:
                 raise Exception("Invalid call")
 
@@ -409,9 +409,9 @@ def get_task_results(task_id: str, image_idx: int = None):
     # TestAAAAA---主流程: 任务历史 Gallery 回调链路诊断标记，便于 VS Code 全文搜索
     # TestCCCCC---主流程: 统一新增的触发链条标记，便于快速定位前端事件->回调->返回值链路
     # TestDDDDD---主流程: 输入参数和 Gallery 返回值的最终确认节点，判断事件是否真的到达函数并将值返回给 Gradio
-    print(f"[TestAAAAA---主流程] get_task_results enter: task_id={task_id}, image_idx={image_idx}")
-    print(f"[TestCCCCC---主流程] get_task_results triggered: task_id={task_id}, image_idx={image_idx}, task_exists={task_manager.get_task(task_id) is not None}")
-    print(f"[TestDDDDD---主流程] Python 回调入口: 准备读取 task_id={task_id}, image_idx={image_idx}, 这一步确定事件是否真正进入 get_task_results")
+    log.debug("[TestAAAAA---主流程] get_task_results enter: task_id={task_id}, image_idx={image_idx}")
+    log.debug("[TestCCCCC---主流程] get_task_results triggered: task_id={task_id}, image_idx={image_idx}, task_exists={task_manager.get_task(task_id) is not None}")
+    log.debug("[TestDDDDD---主流程] Python 回调入口: 准备读取 task_id={task_id}, image_idx={image_idx}, 这一步确定事件是否真正进入 get_task_results")
     task = task_manager.get_task(task_id)
 
     galerry = None
@@ -462,9 +462,9 @@ def get_task_results(task_id: str, image_idx: int = None):
             gr.HTML.update(None),
         )
 
-    print(f"[TestAAAAA---主流程] get_task_results exit: gallery_type={type(gallery_value).__name__}, gallery_value={gallery_value}, res_types={[type(v).__name__ for v in res]}")
-    print(f"[TestCCCCC---主流程] before return to gradio: gallery_value={gallery_value}, gallery_type={type(gallery_value).__name__}, res_len={len(res)}, third_item_type={type(res[2]).__name__ if len(res) > 2 else 'missing'}")
-    print(f"[TestDDDDD---主流程] Python 返回前确认: 即将返回给 Gradio 的 Gallery 值为 {gallery_value}, 类型={type(gallery_value).__name__}, 第3个返回项类型={type(res[2]).__name__ if len(res) > 2 else 'missing'}")
+    log.debug("[TestAAAAA---主流程] get_task_results exit: gallery_type={type(gallery_value).__name__}, gallery_value={gallery_value}, res_types={[type(v).__name__ for v in res]}")
+    log.debug("[TestCCCCC---主流程] before return to gradio: gallery_value={gallery_value}, gallery_type={type(gallery_value).__name__}, res_len={len(res)}, third_item_type={type(res[2]).__name__ if len(res) > 2 else 'missing'}")
+    log.debug("[TestDDDDD---主流程] Python 返回前确认: 即将返回给 Gradio 的 Gallery 值为 {gallery_value}, 类型={type(gallery_value).__name__}, 第3个返回项类型={type(res[2]).__name__ if len(res) > 2 else 'missing'}")
     return res
 
 
@@ -676,7 +676,7 @@ def on_ui_tab(**_kwargs):
             inputs=[selected_task],
             outputs=[infotext, result_actions, galerry, generation_info, download_files, html_log],
         )
-        print(f"[TestDDDDD---主流程] Python 事件绑定: selected_task.change 已注册，调用 get_task_results(task_id, None)")
+        log.debug("[TestDDDDD---主流程] Python 事件绑定: selected_task.change 已注册，调用 get_task_results(task_id, None)")
         selected_image_id.change(
             # The hidden textbox may be empty or still hold stale data during a selection reset.
             # Guarding the index keeps the callback contract stable and prevents falsey/non-numeric
@@ -685,7 +685,7 @@ def on_ui_tab(**_kwargs):
             inputs=[selected_task, selected_image_id],
             outputs=[infotext, result_actions],
         )
-        print(f"[TestDDDDD---主流程] Python 事件绑定: selected_image_id.change 已注册，调用 get_task_results(task_id, image_idx)")
+        log.debug("[TestDDDDD---主流程] Python 事件绑定: selected_image_id.change 已注册，调用 get_task_results(task_id, image_idx)")
         try:
             for paste_tabname, paste_button in send_to_buttons.items():
                 register_paste_params_button(
