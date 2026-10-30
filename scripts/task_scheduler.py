@@ -143,7 +143,7 @@ class Script(scripts.Script):
 
     def bind_enqueue_button(self, root: gr.Blocks):
         log.debug("[TestBBBBB---主流程] bind_enqueue_button start: generate_id={getattr(self.generate_button, '_id', None)}, is_img2img={self.is_img2img}")
-        print(f"[Trace] bind_enqueue_button: root children count={len(getattr(root, 'children', []))}")
+        log.debug(f"[Trace] bind_enqueue_button: root children count={len(getattr(root, 'children', []))}")
         generate = self.generate_button
         if generate is None or generate._id is None:
             log.debug("[TestBBBBB---主流程] bind_enqueue_button abort: generate is None or _id missing")
@@ -195,7 +195,7 @@ class Script(scripts.Script):
             fn = self.wrap_register_ui_task()
             _js_fn = "(...args) => submit_enqueue_img2img(...args)" if is_img2img else "(...args) => submit_enqueue(...args)"
             log.debug("[TestBBBBB---主流程] bind_enqueue_button register click: button_id={self.submit_button.elem_id}, inputs_count={len(new_inputs)}")
-            print(f"[Trace] bind_enqueue_button: registered click for {self.submit_button.elem_id}")
+            log.debug(f"[Trace] bind_enqueue_button: registered click for {self.submit_button.elem_id}")
             self.submit_button.click(
                 fn=fn,
                 _js=_js_fn,

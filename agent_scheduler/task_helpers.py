@@ -43,7 +43,7 @@ def get_script_by_name(script_name: str, is_img2img: bool = False, is_always_on:
 
 def load_image_from_url(url: str):
     try:
-        print(f"[Trace] load_image_from_url: url={url}")
+        log.debug(f"[Trace] load_image_from_url: url={url}")
         resp = requests.get(url, timeout=5)
         resp.raise_for_status()
         return Image.open(io.BytesIO(resp.content))

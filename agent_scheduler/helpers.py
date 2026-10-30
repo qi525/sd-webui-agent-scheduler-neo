@@ -74,9 +74,9 @@ def compare_components_with_ids(components: List[Block], ids: List[int]):
 
 
 def get_component_by_elem_id(root: Block, elem_id: str):
-    print(f"[Trace] get_component_by_elem_id: searching elem_id={elem_id}")
+    log.debug(f"[Trace] get_component_by_elem_id: searching elem_id={elem_id}")
     if getattr(root, 'elem_id', None) == elem_id:
-        print(f"[Trace] get_component_by_elem_id: found elem_id={elem_id} in root")
+        log.debug(f"[Trace] get_component_by_elem_id: found elem_id={elem_id} in root")
         return root
 
     elem = None
@@ -84,7 +84,7 @@ def get_component_by_elem_id(root: Block, elem_id: str):
         for block in root.children:
             elem = get_component_by_elem_id(block, elem_id)
             if elem is not None:
-                print(f"[Trace] get_component_by_elem_id: found elem_id={elem_id} in child {type(block).__name__}")
+                log.debug(f"[Trace] get_component_by_elem_id: found elem_id={elem_id} in child {type(block).__name__}")
                 break
 
     return elem
