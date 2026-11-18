@@ -121,8 +121,7 @@ def regsiter_apis(app: App, task_runner: TaskRunner):
     def queue_txt2img(body: Txt2ImgApiTaskArgs):
         task_id = str(uuid4())
         args = _model_to_dict(body)
-        # 目前仅接受表面接口参数，不传入生成参数，也尚未接入任务保存或执行流程。
-        args.pop("ui_preset", None)
+        ui_preset = args.pop("ui_preset", None)
         checkpoint = args.pop("checkpoint", None)
         vae = args.pop("vae", None)
         callback_url = args.pop("callback_url", None)
@@ -133,6 +132,7 @@ def regsiter_apis(app: App, task_runner: TaskRunner):
             args=args,
             checkpoint=checkpoint,
             vae=vae,
+            ui_preset=ui_preset,
         )
         if callback_url:
             task.api_task_callback = callback_url
@@ -146,8 +146,7 @@ def regsiter_apis(app: App, task_runner: TaskRunner):
     def queue_img2img(body: Img2ImgApiTaskArgs):
         task_id = str(uuid4())
         args = _model_to_dict(body)
-        # 目前仅接受表面接口参数，不传入生成参数，也尚未接入任务保存或执行流程。
-        args.pop("ui_preset", None)
+        ui_preset = args.pop("ui_preset", None)
         checkpoint = args.pop("checkpoint", None)
         vae = args.pop("vae", None)
         callback_url = args.pop("callback_url", None)
@@ -158,6 +157,7 @@ def regsiter_apis(app: App, task_runner: TaskRunner):
             args=args,
             checkpoint=checkpoint,
             vae=vae,
+            ui_preset=ui_preset,
         )
         if callback_url:
             task.api_task_callback = callback_url
@@ -171,6 +171,8 @@ def regsiter_apis(app: App, task_runner: TaskRunner):
         task_args = TaskRunner.instance.parse_task_args(task, deserialization=False)
         named_args = task_args.named_args
         named_args["checkpoint"] = task_args.checkpoint
+        if task_args.ui_preset is not None:
+            named_args["preset"] = task_args.ui_preset
         # remove unused args to reduce payload size
         named_args.pop("alwayson_scripts", None)
         named_args.pop("script_args", None)

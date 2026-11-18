@@ -62,6 +62,7 @@ class ParsedTaskArgs(BaseModel):
     script_args: List[Any]
     checkpoint: Optional[str] = None
     vae: Optional[str] = None
+    ui_preset: Optional[str] = None
 
 
 class TaskRunner:
@@ -111,6 +112,7 @@ class TaskRunner:
         checkpoint: str = None,
         vae: str = None,
         request: gr.Request = None,
+        ui_preset: str = None,
     ):
         named_args, script_args = map_ui_task_args_list_to_named_args(list(args), is_img2img)
 
@@ -121,15 +123,16 @@ class TaskRunner:
         if "request" in named_args:
             named_args["request"] = {"username": request.username}
 
-        params = json.dumps(
-            {
-                "args": named_args,
-                "checkpoint": checkpoint,
-                "vae": vae,
-                "is_ui": True,
-                "is_img2img": is_img2img,
-            }
-        )
+        task_params = {
+            "args": named_args,
+            "checkpoint": checkpoint,
+            "vae": vae,
+            "is_ui": True,
+            "is_img2img": is_img2img,
+        }
+        if ui_preset is not None:
+            task_params["ui_preset"] = ui_preset
+        params = json.dumps(task_params)
         script_params = serialize_script_args(script_args)
 
         return (params, script_params)
@@ -139,20 +142,22 @@ class TaskRunner:
         is_img2img: bool,
         checkpoint: str = None,
         vae: str = None,
+        ui_preset: str = None,
         **api_args,
     ):
         named_args = serialize_api_task_args(api_args, is_img2img, checkpoint=checkpoint, vae=vae)
         checkpoint = get_dict_attribute(named_args, "override_settings.sd_model_checkpoint", None)
         script_args = named_args.pop("script_args", [])
 
-        params = json.dumps(
-            {
-                "args": named_args,
-                "checkpoint": checkpoint,
-                "is_ui": False,
-                "is_img2img": is_img2img,
-            }
-        )
+        task_params = {
+            "args": named_args,
+            "checkpoint": checkpoint,
+            "is_ui": False,
+            "is_img2img": is_img2img,
+        }
+        if ui_preset is not None:
+            task_params["ui_preset"] = ui_preset
+        params = json.dumps(task_params)
         script_params = serialize_script_args(script_args)
         return (params, script_params)
 
@@ -241,6 +246,7 @@ class TaskRunner:
         is_img2img = parsed.get("is_img2img", None)
         checkpoint = parsed.get("checkpoint", None)
         vae = parsed.get("vae", None)
+        ui_preset = parsed.get("ui_preset")
         named_args: Dict[str, Any] = parsed["args"]
         script_args: List[Any] = parsed.get("script_args", task.script_params)
 
@@ -262,6 +268,7 @@ class TaskRunner:
             script_args=script_args,
             checkpoint=checkpoint,
             vae=vae,
+            ui_preset=ui_preset,
         )
 
     def register_ui_task(
@@ -272,13 +279,14 @@ class TaskRunner:
         checkpoint: str = None,
         task_name: str = None,
         request: gr.Request = None,
+        ui_preset: str = None,
     ):
         progress.add_task_to_queue(task_id)
 
         vae = getattr(shared.opts, "sd_vae", "Automatic")
 
         (params, script_args) = self.__serialize_ui_task_args(
-            is_img2img, *args, checkpoint=checkpoint, vae=vae, request=request
+            is_img2img, *args, checkpoint=checkpoint, vae=vae, request=request, ui_preset=ui_preset
         )
 
         task_type = "img2img" if is_img2img else "txt2img"
@@ -305,10 +313,13 @@ class TaskRunner:
         args: Dict,
         checkpoint: str = None,
         vae: str = None,
+        ui_preset: str = None,
     ):
         progress.add_task_to_queue(task_id)
 
-        (params, script_params) = self.__serialize_api_task_args(is_img2img, checkpoint=checkpoint, vae=vae, **args)
+        (params, script_params) = self.__serialize_api_task_args(
+            is_img2img, checkpoint=checkpoint, vae=vae, ui_preset=ui_preset, **args
+        )
 
         task_type = "img2img" if is_img2img else "txt2img"
         task = Task(

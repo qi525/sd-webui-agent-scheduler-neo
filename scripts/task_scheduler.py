@@ -178,6 +178,18 @@ class Script(scripts.Script):
             log.error("[AgentScheduler] No dependency found, cannot bind Enqueue button.")
             return
 
+        try:
+            from modules_forge import main_entry
+        except ModuleNotFoundError as e:
+            if e.name != "modules_forge":
+                raise
+            ui_preset_component = None
+        else:
+            ui_preset_component = main_entry.ui_forge_preset
+            if ui_preset_component is None:
+                log.error("[AgentScheduler] Forge UI Preset component is not initialized; cannot bind Enqueue button.")
+                return
+
         # fn_block.inputs auf self speichern damit wrap_register_ui_task sie nutzen kann
         if "_fn" in dependency:
             fn_block = dependency["_fn"]
@@ -186,13 +198,15 @@ class Script(scripts.Script):
 
         fn_inputs = list(fn_block.inputs)
         new_inputs = [self.checkpoint_dropdown] + fn_inputs
+        if ui_preset_component is not None:
+            new_inputs.append(ui_preset_component)
         log.info("[AgentScheduler] bind_enqueue_button: registering click with " + str(len(new_inputs)) + " inputs")
 
         with root:
             if self.checkpoint_dropdown is not None:
                 self.checkpoint_dropdown.change(fn=self.on_checkpoint_changed, inputs=[self.checkpoint_dropdown])
 
-            fn = self.wrap_register_ui_task()
+            fn = self.wrap_register_ui_task(include_ui_preset=ui_preset_component is not None)
             _js_fn = "(...args) => submit_enqueue_img2img(...args)" if is_img2img else "(...args) => submit_enqueue(...args)"
             log.debug("[TestBBBBB---主流程] bind_enqueue_button register click: button_id={self.submit_button.elem_id}, inputs_count={len(new_inputs)}")
             log.debug(f"[Trace] bind_enqueue_button: registered click for {self.submit_button.elem_id}")
@@ -210,11 +224,16 @@ class Script(scripts.Script):
         for attr in dir(obj):
             print("obj.%s = %r" % (attr, getattr(obj, attr)))
 
-    def wrap_register_ui_task(self):
+    def wrap_register_ui_task(self, include_ui_preset=False):
         def f(request: gr.Request, *args):
             log.debug("[TestBBBBB---主流程] wrap_register_ui_task called: args_len={len(args)}, first_arg_type={type(args[0]).__name__ if args else None}")
             if len(args) == 0:
                 raise Exception("Invalid call")
+
+            ui_preset = None
+            if include_ui_preset:
+                ui_preset = args[-1]
+                args = args[:-1]
 
             # A1111: args[0]=checkpoint, args[1]=task_id, args[2:]=generate_args
             # Forge Neo: args[0]=task_id, args[1:]=generate_args (kein checkpoint im args[0])
@@ -263,6 +282,7 @@ class Script(scripts.Script):
                         checkpoint=c,
                         task_name=task_name,
                         request=request,
+                        ui_preset=ui_preset,
                     )
                 except:
                      log.error("[ArtVenture] Possible taskID conflict. Please try enqueing again")
