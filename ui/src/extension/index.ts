@@ -135,6 +135,18 @@ const sharedGridOptions: GridOptions<Task> = {
       editable: false,
     },
     {
+      field: 'params.preset',
+      headerName: 'UI Preset',
+      cellDataType: 'text',
+      minWidth: 120,
+      maxWidth: 200,
+      editable: false,
+      valueGetter: ({ data }: ValueGetterParams<Task, string>) => {
+        const preset = data?.params?.preset;
+        return typeof preset === 'string' && preset.trim() !== '' ? preset : 'Unspecified';
+      },
+    },
+    {
       field: 'editing',
       editable: false,
       hide: true,
