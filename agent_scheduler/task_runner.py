@@ -43,6 +43,7 @@ from .task_helpers import (
     map_ui_task_args_list_to_named_args,
     map_named_args_to_ui_task_args_list,
 )
+from .preset_compat import infer_compatible_ui_preset
 
 
 class OutOfMemoryError(Exception):
@@ -105,6 +106,29 @@ class TaskRunner:
     def paused(self) -> bool:
         return getattr(shared.opts, "queue_paused", False)
 
+    def __resolve_ui_preset(self, ui_preset: Optional[str] = None, checkpoint: Optional[str] = None) -> Optional[str]:
+        if isinstance(ui_preset, str) and ui_preset.strip():
+            return ui_preset
+
+        from modules import sd_models
+
+        checkpoint_name = checkpoint or getattr(shared.opts, "sd_model_checkpoint", None)
+        checkpoint_info = sd_models.checkpoint_aliases.get(checkpoint_name)
+        if checkpoint_info is None:
+            return None
+
+        model_filename = os.path.basename(checkpoint_info.filename)
+        inferred_preset = infer_compatible_ui_preset(model_filename)
+        if inferred_preset is not None:
+            log.info(
+                "[AgentScheduler] 未提供 ui_preset；模型 %s 按有限兼容名单暂归类为 %s。"
+                "请记得后续在请求中显式添加 ui_preset='%s'。",
+                model_filename,
+                inferred_preset,
+                inferred_preset,
+            )
+        return inferred_preset
+
     def __serialize_ui_task_args(
         self,
         is_img2img: bool,
@@ -123,6 +147,7 @@ class TaskRunner:
         if "request" in named_args:
             named_args["request"] = {"username": request.username}
 
+        ui_preset = self.__resolve_ui_preset(ui_preset, checkpoint)
         task_params = {
             "args": named_args,
             "checkpoint": checkpoint,
@@ -147,6 +172,7 @@ class TaskRunner:
     ):
         named_args = serialize_api_task_args(api_args, is_img2img, checkpoint=checkpoint, vae=vae)
         checkpoint = get_dict_attribute(named_args, "override_settings.sd_model_checkpoint", None)
+        ui_preset = self.__resolve_ui_preset(ui_preset, checkpoint)
         script_args = named_args.pop("script_args", [])
 
         task_params = {

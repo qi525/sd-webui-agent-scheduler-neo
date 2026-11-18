@@ -104,7 +104,7 @@ class Txt2ImgApiTaskArgs(StableDiffusionTxt2ImgProcessingAPI):
     ui_preset: Optional[str] = Field(
         None,
         title="UI Preset",
-        description="UI Preset name; saved with the task but not yet applied during execution.",
+        description="UI Preset name. If omitted, a small exact-match model list may infer XL or Anima.",
     )
     checkpoint: Optional[str] = Field(
         None,
@@ -143,7 +143,7 @@ class Img2ImgApiTaskArgs(StableDiffusionImg2ImgProcessingAPI):
     ui_preset: Optional[str] = Field(
         None,
         title="UI Preset",
-        description="UI Preset name; saved with the task but not yet applied during execution.",
+        description="UI Preset name. If omitted, a small exact-match model list may infer XL or Anima.",
     )
     checkpoint: Optional[str] = Field(
         None,
