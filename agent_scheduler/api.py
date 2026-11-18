@@ -75,6 +75,10 @@ def on_task_finished(
     if not task.api_task_callback:
         return
 
+    # 失败或中断任务可能没有 result/images；这里只警告，不补默认值、不跳过或改变现有回调流程。
+    if not isinstance(result, dict) or "images" not in result:
+        log.warning(f"任务 {task_id} 状态为 {status}，未提供回调所需的 result/images。")
+
     upload = lambda: api_callback(
         task.api_task_callback,
         task_id=task_id,

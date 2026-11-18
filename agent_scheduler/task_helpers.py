@@ -490,7 +490,8 @@ def serialize_api_task_args(
     if checkpoint is not None:
         checkpoint_info: CheckpointInfo = get_closet_checkpoint_match(checkpoint)
         if not checkpoint_info:
-            log.warning(f"Checkpoint {checkpoint} not found, use current system model")
+            # 指定模型未找到时仅记录警告，保留原有继续执行行为，不在这里中断任务或修改其他逻辑。
+            log.warning(f"指定的 checkpoint {checkpoint} 未找到，将继续使用当前系统模型。")
         else:
             args.override_settings["sd_model_checkpoint"] = checkpoint_info.title
 
