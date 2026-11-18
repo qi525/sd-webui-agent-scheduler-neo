@@ -125,15 +125,18 @@ def regsiter_apis(app: App, task_runner: TaskRunner):
         checkpoint = args.pop("checkpoint", None)
         vae = args.pop("vae", None)
         callback_url = args.pop("callback_url", None)
-        task = task_runner.register_api_task(
-            task_id,
-            api_task_id=None,
-            is_img2img=False,
-            args=args,
-            checkpoint=checkpoint,
-            vae=vae,
-            ui_preset=ui_preset,
-        )
+        try:
+            task = task_runner.register_api_task(
+                task_id,
+                api_task_id=None,
+                is_img2img=False,
+                args=args,
+                checkpoint=checkpoint,
+                vae=vae,
+                ui_preset=ui_preset,
+            )
+        except (ValueError, FileNotFoundError) as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
         if callback_url:
             task.api_task_callback = callback_url
             task_manager.update_task(task)
@@ -150,15 +153,18 @@ def regsiter_apis(app: App, task_runner: TaskRunner):
         checkpoint = args.pop("checkpoint", None)
         vae = args.pop("vae", None)
         callback_url = args.pop("callback_url", None)
-        task = task_runner.register_api_task(
-            task_id,
-            api_task_id=None,
-            is_img2img=True,
-            args=args,
-            checkpoint=checkpoint,
-            vae=vae,
-            ui_preset=ui_preset,
-        )
+        try:
+            task = task_runner.register_api_task(
+                task_id,
+                api_task_id=None,
+                is_img2img=True,
+                args=args,
+                checkpoint=checkpoint,
+                vae=vae,
+                ui_preset=ui_preset,
+            )
+        except (ValueError, FileNotFoundError) as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
         if callback_url:
             task.api_task_callback = callback_url
             task_manager.update_task(task)

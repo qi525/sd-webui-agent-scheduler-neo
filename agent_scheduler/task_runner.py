@@ -13,7 +13,7 @@ from typing import Any, Callable, Union, Optional, List, Dict
 from fastapi import FastAPI
 from PIL import Image
 
-from modules import progress, shared, script_callbacks
+from modules import progress, shared, script_callbacks, sd_vae
 from modules.call_queue import queue_lock, wrap_gradio_call
 from modules.txt2img import txt2img
 from modules.img2img import img2img
@@ -45,6 +45,7 @@ from .task_helpers import (
 )
 from .preset_compat import infer_compatible_ui_preset
 from .preset_runtime import apply_api_preset, get_ui_explicit_overrides, temporary_ui_preset
+from .vae_utils import resolve_vae_path
 
 
 class OutOfMemoryError(Exception):
@@ -247,9 +248,10 @@ class TaskRunner:
             named_args["override_settings"] = override
 
         # Apply VAE override
-        if vae is not None:
+        vae_path = resolve_vae_path(vae, sd_vae.vae_dict)
+        if vae_path is not None:
             override: Dict = named_args.get("override_settings", {})
-            override["sd_vae"] = vae
+            override["sd_vae"] = vae_path
             named_args["override_settings"] = override
 
         # load images from disk
@@ -342,12 +344,11 @@ class TaskRunner:
         vae: str = None,
         ui_preset: str = None,
     ):
-        progress.add_task_to_queue(task_id)
-
         (params, script_params) = self.__serialize_api_task_args(
             is_img2img, checkpoint=checkpoint, vae=vae, ui_preset=ui_preset, **args
         )
 
+        progress.add_task_to_queue(task_id)
         task_type = "img2img" if is_img2img else "txt2img"
         task = Task(
             id=task_id,

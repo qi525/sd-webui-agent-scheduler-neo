@@ -114,7 +114,12 @@ class Txt2ImgApiTaskArgs(StableDiffusionTxt2ImgProcessingAPI):
     vae: Optional[str] = Field(
         None,
         title="Custom VAE.",
-        description="Custom VAE. If not specified, the current VAE will be used.",
+        description=(
+            "Installed VAE name from the WebUI VAE list. The extension resolves it to the local file path. "
+            "This selects a standalone VAE; additional VAE/Text Encoder model files belong in "
+            "override_settings.forge_additional_modules. In generation infotext, Module N is only the "
+            "position in that ordered list and does not identify a fixed component type."
+        ),
     )
     sampler_index: Optional[str] = Field(sd_samplers.samplers[0].name, title="Sampler name", alias="sampler_name")
     callback_url: Optional[str] = Field(
@@ -153,7 +158,12 @@ class Img2ImgApiTaskArgs(StableDiffusionImg2ImgProcessingAPI):
     vae: Optional[str] = Field(
         None,
         title="Custom VAE.",
-        description="Custom VAE. If not specified, the current VAE will be used.",
+        description=(
+            "Installed VAE name from the WebUI VAE list. The extension resolves it to the local file path. "
+            "This selects a standalone VAE; additional VAE/Text Encoder model files belong in "
+            "override_settings.forge_additional_modules. In generation infotext, Module N is only the "
+            "position in that ordered list and does not identify a fixed component type."
+        ),
     )
     sampler_index: Optional[str] = Field(sd_samplers.samplers[0].name, title="Sampler name", alias="sampler_name")
     callback_url: Optional[str] = Field(

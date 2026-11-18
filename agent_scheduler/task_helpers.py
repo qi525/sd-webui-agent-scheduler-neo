@@ -21,6 +21,7 @@ from modules.api.models import (
 )
 
 from .helpers import log, get_dict_attribute
+from .vae_utils import resolve_vae_path
 
 img2img_image_args_by_mode: Dict[int, List[List[str]]] = {
     0: [["init_img"]],
@@ -493,11 +494,9 @@ def serialize_api_task_args(
         else:
             args.override_settings["sd_model_checkpoint"] = checkpoint_info.title
 
-    if vae is not None:
-        if vae not in sd_vae.vae_dict:
-            log.warning(f"VAE {vae} not found, use current system vae")
-        else:
-            args.override_settings["sd_vae"] = vae
+    vae_path = resolve_vae_path(vae, sd_vae.vae_dict)
+    if vae_path is not None:
+        args.override_settings["sd_vae"] = vae_path
 
     # load images from url or file if needed
     if is_img2img:
