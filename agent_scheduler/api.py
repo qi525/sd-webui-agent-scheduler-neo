@@ -121,6 +121,8 @@ def regsiter_apis(app: App, task_runner: TaskRunner):
     def queue_txt2img(body: Txt2ImgApiTaskArgs):
         task_id = str(uuid4())
         args = _model_to_dict(body)
+        # 目前仅接受表面接口参数，不传入生成参数，也尚未接入任务保存或执行流程。
+        args.pop("ui_preset", None)
         checkpoint = args.pop("checkpoint", None)
         vae = args.pop("vae", None)
         callback_url = args.pop("callback_url", None)
@@ -144,6 +146,8 @@ def regsiter_apis(app: App, task_runner: TaskRunner):
     def queue_img2img(body: Img2ImgApiTaskArgs):
         task_id = str(uuid4())
         args = _model_to_dict(body)
+        # 目前仅接受表面接口参数，不传入生成参数，也尚未接入任务保存或执行流程。
+        args.pop("ui_preset", None)
         checkpoint = args.pop("checkpoint", None)
         vae = args.pop("vae", None)
         callback_url = args.pop("callback_url", None)

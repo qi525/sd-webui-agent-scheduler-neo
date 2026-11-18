@@ -99,6 +99,13 @@ class TaskModel(BaseModel):
 # - 同时新增 Agent Scheduler 自己的 checkpoint / vae / callback 字段。
 # - 这一步的意义是：让扩展既能复用上游参数结构，又能加自己的业务字段，而不会破坏原始 API 兼容性。
 class Txt2ImgApiTaskArgs(StableDiffusionTxt2ImgProcessingAPI):
+    # 目前仅为表面接口：请求可以携带 UI Preset，但尚未接入任务保存或执行流程。
+    # 真正接通任务生命周期后，再更新此注释。
+    ui_preset: Optional[str] = Field(
+        None,
+        title="UI Preset",
+        description="UI Preset name; currently accepted but not saved or used.",
+    )
     checkpoint: Optional[str] = Field(
         None,
         title="Custom checkpoint.",
@@ -131,6 +138,13 @@ class Txt2ImgApiTaskArgs(StableDiffusionTxt2ImgProcessingAPI):
 # - 与 txt2img 同结构，只是对应 image-to-image 的参数模型。
 # - 这里也保留兼容层，是因为 img2img 参数同样依赖上游 SD WebUI 参数类，以及 Pydantic 版本差异。
 class Img2ImgApiTaskArgs(StableDiffusionImg2ImgProcessingAPI):
+    # 目前仅为表面接口：请求可以携带 UI Preset，但尚未接入任务保存或执行流程。
+    # 真正接通任务生命周期后，再更新此注释。
+    ui_preset: Optional[str] = Field(
+        None,
+        title="UI Preset",
+        description="UI Preset name; currently accepted but not saved or used.",
+    )
     checkpoint: Optional[str] = Field(
         None,
         title="Custom checkpoint.",
