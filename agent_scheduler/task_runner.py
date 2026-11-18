@@ -44,6 +44,7 @@ from .task_helpers import (
     map_named_args_to_ui_task_args_list,
 )
 from .preset_compat import infer_compatible_ui_preset
+from .preset_runtime import apply_api_preset, get_ui_explicit_overrides, temporary_ui_preset
 
 
 class OutOfMemoryError(Exception):
@@ -478,16 +479,32 @@ class TaskRunner:
         if task_args.is_ui:
             ui_args = map_named_args_to_ui_task_args_list(task_args.named_args, task_args.script_args, is_img2img)
 
-            return self.__execute_ui_task(task_id, is_img2img, *ui_args)
+            return self.__execute_ui_task(
+                task_id,
+                is_img2img,
+                *ui_args,
+                ui_preset=task_args.ui_preset,
+                named_args=task_args.named_args,
+                checkpoint=task_args.checkpoint,
+            )
         else:
             return self.__execute_api_task(
                 task_id,
                 is_img2img,
                 script_args=task_args.script_args,
+                ui_preset=task_args.ui_preset,
                 **task_args.named_args,
             )
 
-    def __execute_ui_task(self, task_id: str, is_img2img: bool, *args):
+    def __execute_ui_task(
+        self,
+        task_id: str,
+        is_img2img: bool,
+        *args,
+        ui_preset: str = None,
+        named_args: Dict[str, Any] = None,
+        checkpoint: str = None,
+    ):
         func = wrap_gradio_call(img2img if is_img2img else txt2img, add_stats=True)
 
         with queue_lock:
@@ -496,7 +513,13 @@ class TaskRunner:
 
             res = None
             try:
-                result = func(*args)
+                explicit_overrides = (
+                    get_ui_explicit_overrides(named_args or {}, checkpoint)
+                    if ui_preset is not None and ui_preset != ""
+                    else {}
+                )
+                with temporary_ui_preset(ui_preset, explicit_overrides):
+                    result = func(*args)
                 if result[0] is None and hasattr(shared.state, "oom") and shared.state.oom:
                     res = OutOfMemoryError()
                 elif "CUDA out of memory" in result[2]:
@@ -512,11 +535,13 @@ class TaskRunner:
 
             return res
 
-    def __execute_api_task(self, task_id: str, is_img2img: bool, **kwargs):
+    def __execute_api_task(self, task_id: str, is_img2img: bool, ui_preset: str = None, **kwargs):
         progress.start_task(task_id)
 
         res = None
         try:
+            if ui_preset is not None and ui_preset != "":
+                kwargs = apply_api_preset(kwargs, ui_preset)
             result = (
                 self.__api.img2imgapi(StableDiffusionImg2ImgProcessingAPI(**kwargs))
                 if is_img2img
